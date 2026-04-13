@@ -37,6 +37,7 @@ export default function Tetris() {
   const [startTime, setStartTime] = useState<string>('');
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isResultSavedRef = useRef<boolean>(false);
+  const gameContainerRef = useRef<HTMLDivElement>(null);
 
   // Timer logic
   useEffect(() => {
@@ -50,6 +51,13 @@ export default function Tetris() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
+  }, [gameState]);
+
+  // Auto-focus when game starts
+  useEffect(() => {
+    if (gameState === 'PLAYING' && gameContainerRef.current) {
+      gameContainerRef.current.focus();
+    }
   }, [gameState]);
 
   const formatTime = (seconds: number) => {
@@ -384,10 +392,10 @@ export default function Tetris() {
 
   return (
     <div 
-      className="flex flex-col items-center justify-center min-h-screen bg-neutral-950 text-white p-4 overflow-hidden"
+      ref={gameContainerRef}
+      className="flex flex-col items-center justify-center min-h-screen bg-neutral-950 text-white p-4 outline-none overflow-hidden"
       onKeyDown={handleKeyDown}
       tabIndex={0}
-      autoFocus
     >
       <div className="flex flex-col md:flex-row gap-8 items-start">
         {/* Left Panel: Next Piece & Stats */}
