@@ -385,6 +385,13 @@ export default function Tetris() {
           >
             게임 시작
           </button>
+          
+          <div className="pt-4 border-t border-neutral-800 text-center">
+            <p className="text-[10px] text-neutral-500 leading-relaxed font-medium">
+              AI코딩을활용한창의적앱개발<br />
+              신소재공학과 김효빈
+            </p>
+          </div>
         </div>
       </div>
     );
