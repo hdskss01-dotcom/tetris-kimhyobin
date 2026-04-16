@@ -62,6 +62,7 @@ export default function Tetris() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [leaderboard, setLeaderboard] = useState<{ name: string; finishtime: string }[]>([]);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
+  const isResultSavedRef = useRef<boolean>(false);
   const gameContainerRef = useRef<HTMLDivElement>(null);
 
   // Timer logic
