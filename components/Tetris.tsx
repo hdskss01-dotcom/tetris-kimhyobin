@@ -60,7 +60,8 @@ export default function Tetris() {
   const [timer, setTimer] = useState(0);
   const [startTime, setStartTime] = useState<string>('');
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const isResultSavedRef = useRef<boolean>(false);
+  const [leaderboard, setLeaderboard] = useState<{ name: string; finishtime: string }[]>([]);
+  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
   const gameContainerRef = useRef<HTMLDivElement>(null);
 
   // Timer logic
@@ -75,6 +76,12 @@ export default function Tetris() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
+  }, [gameState]);
+
+  useEffect(() => {
+    if (gameState === 'WON') {
+      fetchLeaderboard();
+    }
   }, [gameState]);
 
   // Auto-focus when game starts
@@ -254,6 +261,37 @@ export default function Tetris() {
     });
   };
 
+  const fetchLeaderboard = async () => {
+    const WEB_APP_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL;
+    if (!WEB_APP_URL) return;
+
+    setIsLoadingLeaderboard(true);
+    try {
+      const response = await fetch(WEB_APP_URL);
+      if (!response.ok) throw new Error('Fetch failed');
+      const data = await response.json();
+      
+      // mm:ss -> seconds for sorting
+      const timeToSeconds = (timeStr: string) => {
+        if (!timeStr || !timeStr.includes(':')) return 999999;
+        const [mins, secs] = timeStr.split(':').map(Number);
+        return mins * 60 + (secs || 0);
+      };
+
+      // Sort by time (ascending) and take top 3
+      const sorted = data
+        .filter((entry: any) => entry.finishtime && entry.name)
+        .sort((a: any, b: any) => timeToSeconds(a.finishtime) - timeToSeconds(b.finishtime))
+        .slice(0, 3);
+      
+      setLeaderboard(sorted);
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+    } finally {
+      setIsLoadingLeaderboard(false);
+    }
+  };
+
   const saveGameResult = async (name: string, start: string, duration: number) => {
     if (isResultSavedRef.current) return;
     isResultSavedRef.current = true;
@@ -279,6 +317,8 @@ export default function Tetris() {
         }),
       });
       console.log('Result saved successfully');
+      // Fetch leaderboard after saving result (slight delay to ensure data is appended)
+      setTimeout(fetchLeaderboard, 1500);
     } catch (error) {
       console.error('Error saving result:', error);
     }
@@ -500,6 +540,40 @@ export default function Tetris() {
                 <p className="text-2xl font-mono">{formatTime(timer)}</p>
                 <p className="text-neutral-500">Lines Cleared: {linesCleared}</p>
               </div>
+
+              {gameState === 'WON' && (
+                <div className="w-full max-w-xs bg-neutral-900/50 rounded-xl border border-neutral-800 p-4 space-y-3">
+                  <h3 className="text-sm font-bold text-blue-500 uppercase tracking-widest flex items-center justify-center gap-2">
+                    <span className="text-xl">🏆</span> TOP 3 RANKING
+                  </h3>
+                  <div className="space-y-2">
+                    {isLoadingLeaderboard ? (
+                      <div className="flex flex-col items-center py-2 space-y-2">
+                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        <p className="text-[10px] text-neutral-500 font-mono italic">Loading scores...</p>
+                      </div>
+                    ) : leaderboard.length > 0 ? (
+                      leaderboard.map((entry, index) => (
+                        <div key={index} className="flex justify-between items-center text-sm font-mono p-2 bg-neutral-800/50 rounded border border-neutral-700/50">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[10px] ${
+                              index === 0 ? 'bg-yellow-500 text-black' : 
+                              index === 1 ? 'bg-neutral-300 text-black' : 
+                              'bg-amber-600 text-white'
+                            }`}>
+                              {index + 1}
+                            </span>
+                            <span className="truncate max-w-[100px] text-neutral-200">{entry.name}</span>
+                          </div>
+                          <span className="text-blue-400 font-bold">{entry.finishtime}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-[10px] text-neutral-500 italic py-2">No records found yet</p>
+                    )}
+                  </div>
+                </div>
+              )}
               <button 
                 onClick={() => setGameState('START')}
                 className="px-8 py-3 bg-white text-black font-bold rounded-full hover:bg-neutral-200 transition-all transform hover:scale-105"
