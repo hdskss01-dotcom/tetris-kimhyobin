@@ -272,16 +272,43 @@ export default function Tetris() {
       if (!response.ok) throw new Error('Fetch failed');
       const data = await response.json();
       
-      // mm:ss -> seconds for sorting
-      const timeToSeconds = (timeStr: string) => {
-        if (!timeStr || !timeStr.includes(':')) return 999999;
-        const [mins, secs] = timeStr.split(':').map(Number);
-        return mins * 60 + (secs || 0);
+      // mm:ss or ISO Date -> seconds for sorting
+      const timeToSeconds = (timeStr: any) => {
+        if (!timeStr) return 999999;
+        const str = String(timeStr);
+        
+        // Handle ISO Date string (e.g. 1899-12-30T00:01:05.000Z)
+        if (str.includes('T')) {
+          const timePart = str.split('T')[1].split('.')[0];
+          const [h, m, s] = timePart.split(':').map(Number);
+          return (m || 0) * 60 + (s || 0);
+        }
+        
+        // Handle mm:ss
+        if (str.includes(':')) {
+          const parts = str.split(':').map(Number);
+          if (parts.length === 2) return parts[0] * 60 + parts[1];
+          if (parts.length === 3) return parts[1] * 60 + parts[2];
+        }
+        return 999999;
+      };
+
+      // Helper to ensure display is mm:ss
+      const ensureMmSs = (timeStr: any) => {
+        const totalSeconds = timeToSeconds(timeStr);
+        if (totalSeconds === 999999) return String(timeStr);
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
       };
 
       // Sort by time (ascending) and take top 3
       const sorted = data
         .filter((entry: any) => entry.finishtime && entry.name)
+        .map((entry: any) => ({
+          ...entry,
+          finishtime: ensureMmSs(entry.finishtime)
+        }))
         .sort((a: any, b: any) => timeToSeconds(a.finishtime) - timeToSeconds(b.finishtime))
         .slice(0, 3);
       
