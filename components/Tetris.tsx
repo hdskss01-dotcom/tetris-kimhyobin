@@ -15,6 +15,30 @@ const createStage = () =>
     new Array(STAGE_WIDTH).fill(0)
   );
 
+const checkCollision = (
+  playerObj: {
+    pos: { x: number; y: number };
+    tetromino: (string | number)[][];
+  },
+  stageObj: STAGE,
+  { x: moveX, y: moveY }: { x: number; y: number }
+) => {
+  for (let y = 0; y < playerObj.tetromino.length; y += 1) {
+    for (let x = 0; x < playerObj.tetromino[y].length; x += 1) {
+      if (playerObj.tetromino[y][x] !== 0) {
+        if (
+          !stageObj[y + playerObj.pos.y + moveY] ||
+          stageObj[y + playerObj.pos.y + moveY][x + playerObj.pos.x + moveX] === undefined ||
+          stageObj[y + playerObj.pos.y + moveY][x + playerObj.pos.x + moveX] !== 0
+        ) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+};
+
 export default function Tetris() {
   const [userName, setUserName] = useState('');
   const [gameState, setGameState] = useState<'START' | 'PLAYING' | 'PAUSED' | 'GAMEOVER' | 'WON'>('START');
@@ -66,27 +90,6 @@ export default function Tetris() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const checkCollision = (
-    playerObj: typeof player,
-    stageObj: STAGE,
-    { x: moveX, y: moveY }: { x: number; y: number }
-  ) => {
-    for (let y = 0; y < playerObj.tetromino.length; y += 1) {
-      for (let x = 0; x < playerObj.tetromino[y].length; x += 1) {
-        if (playerObj.tetromino[y][x] !== 0) {
-          if (
-            !stageObj[y + playerObj.pos.y + moveY] ||
-            stageObj[y + playerObj.pos.y + moveY][x + playerObj.pos.x + moveX] === undefined ||
-            stageObj[y + playerObj.pos.y + moveY][x + playerObj.pos.x + moveX] !== 0
-          ) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
-  };
-
   const resetPlayer = useCallback(() => {
     const newPiece = nextPiece;
     setNextPiece(randomTetromino());
@@ -102,8 +105,6 @@ export default function Tetris() {
     if (checkCollision({
       pos: { x: STAGE_WIDTH / 2 - 2, y: 0 },
       tetromino: newPiece.shape,
-      collided: false,
-      color: newPiece.color,
     }, stage, { x: 0, y: 0 })) {
       setGameState('GAMEOVER');
       setDropTime(null);
@@ -118,7 +119,7 @@ export default function Tetris() {
     }));
   };
 
-  const rotate = (matrix: any[][], dir: number) => {
+  const rotate = (matrix: (string | number)[][], dir: number) => {
     const rotated = matrix.map((_, index) =>
       matrix.map((col) => col[index])
     );
@@ -160,10 +161,9 @@ export default function Tetris() {
       setLinesCleared((prev) => {
         const total = prev + rowsCleared;
         if (total >= 3) {
-          const now = new Date().toLocaleString();
           setGameState('WON');
           setDropTime(null);
-          saveGameResult(userName, startTime, now);
+          saveGameResult(userName, startTime, timer);
         }
         return total;
       });
@@ -177,10 +177,9 @@ export default function Tetris() {
     } else {
       // Game Over check at the top
       if (player.pos.y < 1) {
-        const now = new Date().toLocaleString();
         setGameState('GAMEOVER');
         setDropTime(null);
-        saveGameResult(userName, startTime, now);
+        saveGameResult(userName, startTime, timer);
         return;
       }
       
@@ -255,7 +254,7 @@ export default function Tetris() {
     });
   };
 
-  const saveGameResult = async (name: string, start: string, end: string) => {
+  const saveGameResult = async (name: string, start: string, duration: number) => {
     if (isResultSavedRef.current) return;
     isResultSavedRef.current = true;
 
@@ -276,7 +275,7 @@ export default function Tetris() {
         body: JSON.stringify({
           timestamp: start,
           name: name,
-          finishtime: end,
+          finishtime: formatTime(duration),
         }),
       });
       console.log('Result saved successfully');

@@ -11,9 +11,15 @@
 }
 
 body {
-  background: var(--background);
+  background: radial-gradient(circle at center, #1a1a1a 0%, #0a0a0a 100%);
   color: var(--foreground);
   overflow: hidden;
+  font-family: 'Inter', sans-serif;
+}
+
+::selection {
+  background: #3b82f6;
+  color: white;
 }
 
 @keyframes block-drop {
