@@ -476,7 +476,15 @@ export default function Tetris() {
         <div className="space-y-6 w-48 order-2 md:order-1">
           <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800">
             <h2 className="text-xs uppercase tracking-widest text-neutral-500 mb-4 font-bold">Next Piece</h2>
-            <div className="grid grid-cols-4 grid-rows-4 gap-1 w-24 h-24 mx-auto">
+            <div 
+              className="grid gap-1 mx-auto"
+              style={{
+                gridTemplateColumns: `repeat(${nextPiece.shape[0].length}, 1.25rem)`,
+                gridTemplateRows: `repeat(${nextPiece.shape.length}, 1.25rem)`,
+                width: 'fit-content',
+                height: 'fit-content'
+              }}
+            >
               {nextPiece.shape.map((row, y) => 
                 row.map((cell, x) => (
                   <div 
